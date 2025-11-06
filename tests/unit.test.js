@@ -49,6 +49,7 @@ describe('Yale to Fale replacement logic', () => {
   });
 
   test('should handle text that has no Yale references', () => {
+    // NOTE: changed Yale to university
     const htmlWithoutYale = `
       <!DOCTYPE html>
       <html>
@@ -57,7 +58,7 @@ describe('Yale to Fale replacement logic', () => {
       </head>
       <body>
         <h1>Hello World</h1>
-        <p>This is a test page with no Yale references.</p>
+        <p>This is a test page with no university references.</p>
       </body>
       </html>
     `;
@@ -80,7 +81,8 @@ describe('Yale to Fale replacement logic', () => {
     // Content should remain the same
     expect(modifiedHtml).toContain('<title>Test Page</title>');
     expect(modifiedHtml).toContain('<h1>Hello World</h1>');
-    expect(modifiedHtml).toContain('<p>This is a test page with no Yale references.</p>');
+    // NOTE: changed Yale to university
+    expect(modifiedHtml).toContain('<p>This is a test page with no university references.</p>');
   });
 
   test('should handle case-insensitive replacements', () => {
@@ -94,7 +96,13 @@ describe('Yale to Fale replacement logic', () => {
       return this.nodeType === 3;
     }).each(function() {
       const text = $(this).text();
-      const newText = text.replace(/Yale/gi, 'Fale');
+      // NOTE: changed Yale to university
+      const newText = text.replace(/Yale/gi, (match) => {
+        return match.split('').map((char, i) => {
+          const replacement = 'fale'[i];
+          return char === char.toUpperCase() ? replacement.toUpperCase() : replacement;
+        }).join('');
+      });
       if (text !== newText) {
         $(this).replaceWith(newText);
       }

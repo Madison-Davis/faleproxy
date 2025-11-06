@@ -1,8 +1,5 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-const { exec } = require('child_process');
-const { promisify } = require('util');
-const execAsync = promisify(exec);
 const { sampleHtmlWithYale } = require('./test-utils');
 const nock = require('nock');
 
@@ -11,42 +8,37 @@ const TEST_PORT = 3099;
 let server;
 
 describe('Integration Tests', () => {
-  // Modify the app to use a test port
   beforeAll(async () => {
-    // Mock external HTTP requests
-    nock.disableNetConnect();
-    nock.enableNetConnect('127.0.0.1');
+    // Mock console.error to suppress error logs during tests
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    // Setup nock to intercept external requests
+    nock.cleanAll();
+    nock('https://example.com')
+      .get('/')
+      .reply(200, sampleHtmlWithYale)
+      .persist();
     
-    // Create a temporary test app file
-    await execAsync('cp app.js app.test.js');
-    await execAsync(`sed -i '' 's/const PORT = 3001/const PORT = ${TEST_PORT}/' app.test.js`);
+    // Import the app directly (don't spawn a new process)
+    const app = require('../app');
     
-    // Start the test server
-    server = require('child_process').spawn('node', ['app.test.js'], {
-      detached: true,
-      stdio: 'ignore'
-    });
+    // Start server in the same process
+    server = app.listen(TEST_PORT);
     
     // Give the server time to start
     await new Promise(resolve => setTimeout(resolve, 2000));
-  }, 10000); // Increase timeout for server startup
+  }, 20000); // NOTE: increased timeout for this test as requested (from 10000)
 
   afterAll(async () => {
-    // Kill the test server and clean up
-    if (server && server.pid) {
-      process.kill(-server.pid);
-    }
-    await execAsync('rm app.test.js');
     nock.cleanAll();
-    nock.enableNetConnect();
+    if (server) {
+      await new Promise(resolve => server.close(resolve));
+    }
   });
 
   test('Should replace Yale with Fale in fetched content', async () => {
-    // Setup mock for example.com
-    nock('https://example.com')
-      .get('/')
-      .reply(200, sampleHtmlWithYale);
-    
+    // NOTE: removed nock setup and made request directly to proxy app
+
     // Make a request to our proxy app
     const response = await axios.post(`http://localhost:${TEST_PORT}/fetch`, {
       url: 'https://example.com/'
@@ -74,7 +66,7 @@ describe('Integration Tests', () => {
     
     // Verify link text is changed
     expect($('a').first().text()).toBe('About Fale');
-  }, 10000); // Increase timeout for this test
+  }, 20000); // NOTE: increased timeout for this test as requested (from 10000)
 
   test('Should handle invalid URLs', async () => {
     try {
