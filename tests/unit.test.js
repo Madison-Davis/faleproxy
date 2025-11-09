@@ -79,7 +79,7 @@ describe('Yale to Fale replacement logic', () => {
     const modifiedHtml = $.html();
     
     // Content should remain the same
-    expect(modifiedHtml).toContain('<title>Vest Page</title>');
+    expect(modifiedHtml).toContain('<title>Test Page</title>');
     expect(modifiedHtml).toContain('<h1>Hello World</h1>');
     // NOTE: changed Yale to university
     expect(modifiedHtml).toContain('<p>This is a test page with no university references.</p>');
