@@ -13,6 +13,7 @@ jobs:
     strategy:
       matrix:
         node-version: [18.x, 20.x]
+      fail-fast: true   # stop other matrix jobs if one fails
 
     steps:
     - uses: actions/checkout@v4
@@ -30,6 +31,7 @@ jobs:
       run: npm run test:ci
       
     - name: Upload coverage report
+      if: success()  # only upload if tests pass
       uses: actions/upload-artifact@v4
       with:
         name: coverage-report-${{ matrix.node-version }}-run-${{ github.run_id }}
@@ -37,7 +39,9 @@ jobs:
         
   deploy:
     needs: test
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    if >: 
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
+      success() # ensure tests all passed
     runs-on: ubuntu-latest
     
     steps:
@@ -59,3 +63,4 @@ jobs:
       
     - name: Deploy Project Artifacts to Vercel
       run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+
